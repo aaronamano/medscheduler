@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -139,6 +140,9 @@ export default function MedicationDashboard() {
             <p className="text-muted-foreground">Track your medications and monitor adherence</p>
           </div>
           <div className="flex items-center gap-4">
+            <Button asChild variant="outline">
+              <Link href="/login">Login</Link>
+            </Button>
             <Button onClick={exportToPDF} variant="outline">
               <Download className="mr-2 h-4 w-4" />
               Export PDF
