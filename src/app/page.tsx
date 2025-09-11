@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ export interface Medication {
 }
 
 export default function MedicationDashboard() {
+  const [isClient, setIsClient] = useState(false)
   const [medications, setMedications] = useState<Medication[]>([
     {
       id: "1",
@@ -51,6 +52,10 @@ export default function MedicationDashboard() {
     frequency: "",
     dosage: "",
   })
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const addMedication = () => {
     if (newMedication.name && newMedication.frequency) {
@@ -128,6 +133,10 @@ export default function MedicationDashboard() {
     })
 
     doc.save("medication-dashboard.pdf")
+  }
+
+  if (!isClient) {
+    return null
   }
 
   return (
