@@ -25,26 +25,7 @@ export interface Medication {
 
 export default function MedicationDashboard() {
   const [isClient, setIsClient] = useState(false)
-  const [medications, setMedications] = useState<Medication[]>([
-    {
-      id: "1",
-      name: "Aspirin",
-      notes: "Take with food to avoid stomach upset",
-      frequency: "Daily",
-      dosage: "81mg",
-      timesTaken: 28,
-      totalDoses: 30,
-    },
-    {
-      id: "2",
-      name: "Vitamin D3",
-      notes: "Best absorbed with fatty meal",
-      frequency: "Daily",
-      dosage: "1000 IU",
-      timesTaken: 25,
-      totalDoses: 30,
-    },
-  ])
+  const [medications, setMedications] = useState<Medication[]>([])
 
   const [newMedication, setNewMedication] = useState({
     name: "",
@@ -52,10 +33,31 @@ export default function MedicationDashboard() {
     frequency: "",
     dosage: "",
   })
+  const [medicationNames, setMedicationNames] = useState<string[]>([]);
+  const [isOtherSelected, setIsOtherSelected] = useState(false);
+  
 
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  useEffect(() => {
+    const fetchMedicationNames = async () => {
+      try {
+        const response = await fetch("/api/medicines");
+        if (response.ok) {
+          const data = await response.json();
+          setMedicationNames([...data, "Other"]);
+        } else {
+          console.error("Failed to fetch medication names");
+        }
+      } catch (error) {
+        console.error("Error fetching medication names:", error);
+      }
+    };
+
+    fetchMedicationNames();
+  }, []);
 
   const addMedication = () => {
     if (newMedication.name && newMedication.frequency) {
@@ -69,7 +71,7 @@ export default function MedicationDashboard() {
         totalDoses: getFrequencyDoses(newMedication.frequency),
       }
       setMedications([...medications, medication])
-      setNewMedication({ name: "", notes: "", frequency: "", dosage: "" })
+      setNewMedication({ name: "", notes: "", frequency: "", dosage: "" });
     }
   }
 
@@ -215,12 +217,38 @@ export default function MedicationDashboard() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Medication Name</Label>
-                <Input
-                  id="name"
-                  placeholder="Enter medication name"
+                <Select
                   value={newMedication.name}
-                  onChange={(e) => setNewMedication({ ...newMedication, name: e.target.value })}
-                />
+                  onValueChange={(value) => {
+                    if (value === "Other") {
+                      setIsOtherSelected(true);
+                      setNewMedication({ ...newMedication, name: "" });
+                    } else {
+                      setIsOtherSelected(false);
+                      setNewMedication({ ...newMedication, name: value });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select medication" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {medicationNames.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isOtherSelected && (
+                  <Input
+                    id="other-name"
+                    placeholder="Enter medication name"
+                    value={newMedication.name}
+                    onChange={(e) => setNewMedication({ ...newMedication, name: e.target.value })}
+                    className="mt-2"
+                  />
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dosage">Dosage</Label>
