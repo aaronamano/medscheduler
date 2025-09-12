@@ -21,6 +21,8 @@ export interface Medication {
   dosage: string
   timesTaken: number
   totalDoses: number
+  startDate: string
+  endDate: string
 }
 
 export default function MedicationDashboard() {
@@ -35,6 +37,19 @@ export default function MedicationDashboard() {
   })
   const [medicationNames, setMedicationNames] = useState<string[]>([]);
   const [isOtherSelected, setIsOtherSelected] = useState(false);
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [image, setImage] = useState<string | undefined>("");
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
   
 
   useEffect(() => {
@@ -60,7 +75,7 @@ export default function MedicationDashboard() {
   }, []);
 
   const addMedication = () => {
-    if (newMedication.name && newMedication.frequency) {
+    if (newMedication.name && newMedication.frequency && startDate && endDate) {
       const medication: Medication = {
         id: Date.now().toString(),
         name: newMedication.name,
@@ -68,10 +83,16 @@ export default function MedicationDashboard() {
         frequency: newMedication.frequency,
         dosage: newMedication.dosage,
         timesTaken: 0,
-        totalDoses: getFrequencyDoses(newMedication.frequency),
+        totalDoses: getFrequencyDoses(newMedication.frequency, startDate, endDate),
+        startDate,
+        endDate,
+        image,
       }
       setMedications([...medications, medication])
       setNewMedication({ name: "", notes: "", frequency: "", dosage: "" });
+      setStartDate("");
+      setEndDate("");
+      setImage("");
     }
   }
 
@@ -79,20 +100,25 @@ export default function MedicationDashboard() {
     setMedications(medications.filter((med) => med.id !== id))
   }
 
-  const getFrequencyDoses = (frequency: string) => {
+  const getFrequencyDoses = (frequency: string, start: string, end: string) => {
+    const startDate = new Date(start)
+    const endDate = new Date(end)
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
     switch (frequency) {
       case "Daily":
-        return 30
+        return diffDays
       case "Twice Daily":
-        return 60
+        return diffDays * 2
       case "Three Times Daily":
-        return 90
+        return diffDays * 3
       case "Weekly":
-        return 4
+        return Math.ceil(diffDays / 7)
       case "As Needed":
-        return 10
+        return diffDays // Or some other logic for "As Needed"
       default:
-        return 30
+        return diffDays
     }
   }
 
@@ -281,12 +307,42 @@ export default function MedicationDashboard() {
               </div>
               <div className="space-y-2">
                 <Label>Medication Image</Label>
-                <div className="flex items-center justify-center w-full h-20 border-2 border-dashed border-border rounded-lg bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors">
-                  <div className="text-center">
-                    <Upload className="mx-auto h-6 w-6 text-muted-foreground" />
-                    <p className="mt-1 text-xs text-muted-foreground">Upload image</p>
-                  </div>
+                <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors relative">
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={handleImageChange}
+                  />
+                  {image ? (
+                    <img src={image} alt="Medication Image" className="h-full w-full object-cover rounded-lg" />
+                  ) : (
+                    <div className="text-center">
+                      <Upload className="mx-auto h-6 w-6 text-muted-foreground" />
+                      <p className="mt-1 text-xs text-muted-foreground">Upload image</p>
+                    </div>
+                  )}
                 </div>
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="start-date">Start Date</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end-date">End Date</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
               </div>
             </div>
             <div className="space-y-2">
