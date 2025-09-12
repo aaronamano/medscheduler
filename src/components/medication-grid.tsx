@@ -80,6 +80,11 @@ export function MedicationGrid({ medications, onDelete, onExportPDF }: Medicatio
                     </Badge>
                   </div>
 
+                  {/* Duration */}
+                  <div className="text-center text-sm text-muted-foreground">
+                    {new Date(medication.startDate).toLocaleDateString()} - {new Date(medication.endDate).toLocaleDateString()}
+                  </div>
+
                   {/* Frequency */}
                   <div className="flex justify-center">
                     <Badge className={getFrequencyColor(medication.frequency)}>{medication.frequency}</Badge>
