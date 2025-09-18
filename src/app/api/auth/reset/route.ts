@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     const client = await clientPromise;
-    const db = client.db('studysynth');
+    const db = client.db('medscheduler');
     const accounts = db.collection('accounts');
 
     const user = await accounts.findOne({ email });

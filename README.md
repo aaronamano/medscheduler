@@ -33,18 +33,11 @@ schema for account
 ```typescript
 {
   _id: ObjectID(),
-  name: String,
-  username: String,
+  firstName: String,
+  lastName: String,
+  email: String,
   password: String, // encrypted
-}
-```
-
-## `Chart` collection
-schema for users medications
-```typescript
-{
-  _id: ObjectID(), // get the accounts id
-  prescriptions: [{
+  chart: [{
     _id: ObjectID(), // create id of medication
     medication: String, // name of the medicine
     dosage: String, // e.g. "100 mg"
@@ -57,10 +50,10 @@ schema for users medications
     imageUrl: String, // url of the image
     createdAt: ISODate(), // metadata 
     updatedAt: ISODate() // metadata 
-  }]
+  }] // set chart as an empty array when creating a new account
 }
 ```
 
-## `Medications` collection
+## `Medicines` collection
 i imported a kaggle dataset
 

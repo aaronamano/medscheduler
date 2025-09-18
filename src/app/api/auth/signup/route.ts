@@ -5,14 +5,14 @@ import clientPromise from '@/lib/mongodb';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, name } = await req.json();
+    const { firstName, lastName, email, password } = await req.json();
 
-    if (!email || !password || !name) {
+    if ( !firstName || !lastName || !email || !password ) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
     const client = await clientPromise;
-    const db = client.db('studysynth');
+    const db = client.db('medscheduler');
     const accounts = db.collection('accounts');
 
     const existingUser = await accounts.findOne({ email });
@@ -24,11 +24,11 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = {
-      name,
+      firstName,
+      lastName,
       email,
       password: hashedPassword,
-      perplexityKey: '',
-      openaiKey: '',
+      chart: []
     };
 
     await accounts.insertOne(newUser);
