@@ -32,7 +32,7 @@ export default function LoginPage() {
         const data = await response.json();
         setError(data.error || "An error occurred during login.");
       }
-    } catch (error) {
+    } catch {
       setError("An error occurred during login.");
     }
   };

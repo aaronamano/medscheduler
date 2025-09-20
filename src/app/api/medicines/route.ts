@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
+async function shortenUrl(longUrl: string): Promise<string | null> {
+  try {
+    const apiUrl = `https://api.shrtco.de/v2/shorten?url=${encodeURIComponent(longUrl)}`;
+    const response = await fetch(apiUrl);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error(`shrtco.de API error: ${response.status} - ${errorData.error}`);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.result.full_short_link;
+  } catch (error) {
+    console.error('Error shortening URL:', error);
+    return null;
+  }
+}
+
 export async function GET() {
   try {
     const client = await clientPromise;
@@ -36,6 +55,14 @@ export async function POST(req: NextRequest) {
 
     const medicationData = await req.json();
 
+    let imageUrl = medicationData.image;
+    if (imageUrl) {
+      const shortUrl = await shortenUrl(imageUrl);
+      if (shortUrl) {
+        imageUrl = shortUrl;
+      }
+    }
+
     const newMedication = {
       _id: new ObjectId(),
       medication: medicationData.name,
@@ -46,7 +73,7 @@ export async function POST(req: NextRequest) {
         endDate: new Date(medicationData.endDate),
       },
       notes: medicationData.notes,
-      imageUrl: medicationData.image,
+      imageUrl: imageUrl,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -126,6 +153,14 @@ export async function PUT(req: NextRequest) {
         const medicationData = await req.json();
         const medId = ObjectId.createFromHexString(medicationData._id);
 
+        let imageUrl = medicationData.image;
+        if (imageUrl) {
+            const shortUrl = await shortenUrl(imageUrl);
+            if (shortUrl) {
+                imageUrl = shortUrl;
+            }
+        }
+
         const result = await accounts.updateOne(
             { _id: userId, "chart._id": medId },
             {
@@ -136,7 +171,7 @@ export async function PUT(req: NextRequest) {
                     "chart.$.duration.startDate": new Date(medicationData.startDate),
                     "chart.$.duration.endDate": new Date(medicationData.endDate),
                     "chart.$.notes": medicationData.notes,
-                    "chart.$.imageUrl": medicationData.image,
+                    "chart.$.imageUrl": imageUrl,
                     "chart.$.updatedAt": new Date(),
                 }
             }

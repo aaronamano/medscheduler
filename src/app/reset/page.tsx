@@ -29,7 +29,7 @@ export default function ResetPasswordPage() {
       } else {
         setMessage(data.error || "An error occurred.");
       }
-    } catch (error) {
+    } catch {
       setMessage("An error occurred.");
     }
   };

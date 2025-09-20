@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -60,12 +61,13 @@ export function MedicationGrid({ medications, onDelete, onExportPDF, onEdit }: M
                 <div className="space-y-3">
                   {/* Image Section */}
                   <div className="flex justify-center">
-                    <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
+                    <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center relative">
                       {medication.image ? (
-                        <img
+                        <Image
                           src={medication.image || "/placeholder.svg"}
                           alt={medication.name}
-                          className="w-full h-full object-cover rounded-lg"
+                          className="object-cover rounded-lg"
+                          layout="fill"
                         />
                       ) : (
                         <ImageIcon className="h-8 w-8 text-muted-foreground" />

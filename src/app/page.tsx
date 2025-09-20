@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -24,6 +25,20 @@ export interface Medication {
   totalDoses: number
   startDate: string
   endDate: string
+}
+
+interface ApiMedication {
+  _id: string;
+  medication: string;
+  dosage: string;
+  frequency: string;
+  duration: {
+    startDate: string;
+    endDate: string;
+  };
+  notes: string;
+  imageUrl: string;
+  timesTaken?: number;
 }
 
 export default function MedicationDashboard() {
@@ -75,7 +90,7 @@ export default function MedicationDashboard() {
               setFirstName(data.firstName)
             }
             if (data.chart) {
-              const mappedMedications = data.chart.map((med: any) => ({
+              const mappedMedications = data.chart.map((med: ApiMedication) => ({
                 _id: med._id,
                 name: med.medication,
                 dosage: med.dosage,
@@ -353,7 +368,7 @@ export default function MedicationDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Today's Doses</CardTitle>
+              <CardTitle className="text-sm font-medium">Today&apos;s Doses</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -464,7 +479,7 @@ export default function MedicationDashboard() {
                     onChange={handleImageChange}
                   />
                   {image ? (
-                    <img src={image} alt="Medication Image" className="h-full w-full object-cover rounded-lg" />
+                    <Image src={image} alt="Medication Image" className="h-full w-full object-cover rounded-lg" layout="fill" />
                   ) : (
                     <div className="text-center">
                       <Upload className="mx-auto h-6 w-6 text-muted-foreground" />
