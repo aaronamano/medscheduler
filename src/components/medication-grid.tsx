@@ -10,9 +10,10 @@ interface MedicationGridProps {
   medications: Medication[]
   onDelete: (id: string) => void
   onExportPDF: () => void
+  onEdit: (medication: Medication) => void
 }
 
-export function MedicationGrid({ medications, onDelete, onExportPDF }: MedicationGridProps) {
+export function MedicationGrid({ medications, onDelete, onExportPDF, onEdit }: MedicationGridProps) {
   const getFrequencyColor = (frequency: string) => {
     switch (frequency) {
       case "Daily":
@@ -54,7 +55,7 @@ export function MedicationGrid({ medications, onDelete, onExportPDF }: Medicatio
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {medications.map((medication) => (
-            <Card key={medication.id} className="hover:shadow-md transition-shadow">
+            <Card key={medication._id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="space-y-3">
                   {/* Image Section */}
@@ -119,14 +120,14 @@ export function MedicationGrid({ medications, onDelete, onExportPDF }: Medicatio
 
                   {/* Actions */}
                   <div className="flex gap-2 pt-2">
-                    <Button variant="outline" size="sm" className="flex-1 bg-transparent">
+                    <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={() => onEdit(medication)}>
                       <Edit className="h-4 w-4 mr-1" />
                       Edit
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => onDelete(medication.id)}
+                      onClick={() => onDelete(medication._id)}
                       className="text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />

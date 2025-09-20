@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +14,7 @@ import { Plus, Upload, Activity, Calendar, Clock, Pill, Download } from "lucide-
 import { MedicationGrid } from "@/components/medication-grid"
 
 export interface Medication {
-  id: string
+  _id: string
   name: string
   image?: string
   notes: string
@@ -28,35 +29,79 @@ export interface Medication {
 export default function MedicationDashboard() {
   const [isClient, setIsClient] = useState(false)
   const [medications, setMedications] = useState<Medication[]>([])
-
   const [newMedication, setNewMedication] = useState({
     name: "",
     notes: "",
     frequency: "",
     dosage: "",
   })
-  const [medicationNames, setMedicationNames] = useState<string[]>([]);
-  const [isOtherSelected, setIsOtherSelected] = useState(false);
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
-  const [image, setImage] = useState<string | undefined>("");
+  const [medicationNames, setMedicationNames] = useState<string[]>([])
+  const [isOtherSelected, setIsOtherSelected] = useState(false)
+  const [startDate, setStartDate] = useState<string>("")
+  const [endDate, setEndDate] = useState<string>("")
+  const [image, setImage] = useState<string | undefined>("")
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [firstName, setFirstName] = useState("")
+  const router = useRouter()
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const reader = new FileReader();
+      const reader = new FileReader()
       reader.onload = (event) => {
-        setImage(event.target?.result as string);
-      };
-      reader.readAsDataURL(e.target.files[0]);
+        setImage(event.target?.result as string)
+      }
+      reader.readAsDataURL(e.target.files[0])
     }
-  };
-  
+  }
 
   useEffect(() => {
     setIsClient(true)
-  }, [])
 
-  useEffect(() => {
+    const fetchInitialData = async () => {
+      const token = localStorage.getItem("token")
+      if (token) {
+        setIsLoggedIn(true)
+        try {
+          const response = await fetch("/api/auth/user", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+          if (response.ok) {
+            const data = await response.json()
+            if (data.firstName) {
+              setFirstName(data.firstName)
+            }
+            if (data.chart) {
+              const mappedMedications = data.chart.map((med: any) => ({
+                _id: med._id,
+                name: med.medication,
+                dosage: med.dosage,
+                frequency: med.frequency,
+                startDate: new Date(med.duration.startDate).toISOString().split("T")[0],
+                endDate: new Date(med.duration.endDate).toISOString().split("T")[0],
+                notes: med.notes,
+                image: med.imageUrl,
+                timesTaken: med.timesTaken || 0, // Default to 0 if not present
+                totalDoses: getFrequencyDoses(
+                  med.frequency,
+                  new Date(med.duration.startDate).toISOString().split("T")[0],
+                  new Date(med.duration.endDate).toISOString().split("T")[0]
+                ),
+              }))
+              setMedications(mappedMedications)
+            }
+          } else {
+            console.error("Failed to fetch user data")
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error)
+        }
+      }
+    }
+
     const fetchMedicationNames = async () => {
       try {
         const response = await fetch("/api/medicines");
@@ -71,13 +116,13 @@ export default function MedicationDashboard() {
       }
     };
 
-    fetchMedicationNames();
-  }, []);
+    fetchInitialData()
+    fetchMedicationNames()
+  }, [])
 
-  const addMedication = () => {
+  const addMedication = async () => {
     if (newMedication.name && newMedication.frequency && startDate && endDate) {
-      const medication: Medication = {
-        id: Date.now().toString(),
+      const medicationData = {
         name: newMedication.name,
         notes: newMedication.notes,
         frequency: newMedication.frequency,
@@ -88,17 +133,104 @@ export default function MedicationDashboard() {
         endDate,
         image,
       }
-      setMedications([...medications, medication])
-      setNewMedication({ name: "", notes: "", frequency: "", dosage: "" });
-      setStartDate("");
-      setEndDate("");
-      setImage("");
+
+      try {
+        const token = localStorage.getItem("token")
+        const response = await fetch("/api/medicines", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(medicationData),
+        })
+
+        if (response.ok) {
+          const newMedFromDb = await response.json();
+          const newMed = {
+            _id: newMedFromDb._id,
+            name: newMedFromDb.medication,
+            dosage: newMedFromDb.dosage,
+            frequency: newMedFromDb.frequency,
+            startDate: new Date(newMedFromDb.duration.startDate).toISOString().split("T")[0],
+            endDate: new Date(newMedFromDb.duration.endDate).toISOString().split("T")[0],
+            notes: newMedFromDb.notes,
+            image: newMedFromDb.imageUrl,
+            timesTaken: 0,
+            totalDoses: getFrequencyDoses(
+              newMedFromDb.frequency,
+              new Date(newMedFromDb.duration.startDate).toISOString().split("T")[0],
+              new Date(newMedFromDb.duration.endDate).toISOString().split("T")[0]
+            ),
+          };
+          setMedications([...medications, newMed]);
+          setNewMedication({ name: "", notes: "", frequency: "", dosage: "" });
+          setStartDate("");
+          setEndDate("");
+          setImage("");
+        } else {
+          console.error("Failed to add medication");
+        }
+      } catch (error) {
+        console.error("Error adding medication:", error)
+      }
     }
   }
 
-  const deleteMedication = (id: string) => {
-    setMedications(medications.filter((med) => med.id !== id))
+  const deleteMedication = async (id: string) => {
+    try {
+      const token = localStorage.getItem("token")
+      const response = await fetch(`/api/medicines?id=${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        setMedications(medications.filter((med) => med._id !== id))
+      } else {
+        console.error("Failed to delete medication")
+      }
+    } catch (error) {
+      console.error("Error deleting medication:", error)
+    }
   }
+
+  const handleEditClick = (medication: Medication) => {
+    setEditingMedication(medication);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setEditingMedication(null);
+    setIsEditModalOpen(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMedication) return;
+
+    try {
+        const token = localStorage.getItem("token");
+        const response = await fetch('/api/medicines', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(editingMedication),
+        });
+
+        if (response.ok) {
+            setMedications(medications.map(med => med._id === editingMedication._id ? editingMedication : med));
+            handleCloseModal();
+        } else {
+            console.error('Failed to save medication');
+        }
+    } catch (error) {
+        console.error('Error saving medication:', error);
+    }
+  };
 
   const getFrequencyDoses = (frequency: string, start: string, end: string) => {
     const startDate = new Date(start)
@@ -126,6 +258,7 @@ export default function MedicationDashboard() {
     if (medications.length === 0) return 0
     const totalTaken = medications.reduce((sum, med) => sum + med.timesTaken, 0)
     const totalExpected = medications.reduce((sum, med) => sum + med.totalDoses, 0)
+    if (totalExpected === 0) return 0
     return Math.round((totalTaken / totalExpected) * 100)
   }
 
@@ -163,6 +296,13 @@ export default function MedicationDashboard() {
     doc.save("medication-dashboard.pdf")
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem("token")
+    setIsLoggedIn(false)
+    setFirstName("")
+    router.push("/")
+  }
+
   if (!isClient) {
     return null
   }
@@ -177,9 +317,18 @@ export default function MedicationDashboard() {
             <p className="text-muted-foreground">Track your medications and monitor adherence</p>
           </div>
           <div className="flex items-center gap-4">
-            <Button asChild variant="outline">
-              <Link href="/login">Login</Link>
-            </Button>
+            {isLoggedIn ? (
+              <>
+                <span className="text-foreground">Welcome, {firstName}</span>
+                <Button onClick={handleLogout} variant="outline">
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Button asChild variant="outline">
+                <Link href="/login">Login</Link>
+              </Button>
+            )}
             <Button onClick={exportToPDF} variant="outline">
               <Download className="mr-2 h-4 w-4" />
               Export PDF
@@ -247,11 +396,11 @@ export default function MedicationDashboard() {
                   value={newMedication.name}
                   onValueChange={(value) => {
                     if (value === "Other") {
-                      setIsOtherSelected(true);
-                      setNewMedication({ ...newMedication, name: "" });
+                      setIsOtherSelected(true)
+                      setNewMedication({ ...newMedication, name: "" })
                     } else {
-                      setIsOtherSelected(false);
-                      setNewMedication({ ...newMedication, name: value });
+                      setIsOtherSelected(false)
+                      setNewMedication({ ...newMedication, name: value })
                     }
                   }}
                 >
@@ -363,7 +512,98 @@ export default function MedicationDashboard() {
         </Card>
 
         {/* Medication Grid */}
-        <MedicationGrid medications={medications} onDelete={deleteMedication} onExportPDF={exportToPDF} />
+        <MedicationGrid medications={medications} onDelete={deleteMedication} onExportPDF={exportToPDF} onEdit={handleEditClick} />
+
+        {/* Edit Medication Modal */}
+        {isEditModalOpen && editingMedication && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-2xl">
+              <CardHeader>
+                <CardTitle>Edit Medication</CardTitle>
+                <CardDescription>Update the details for your medication</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-name">Medication Name</Label>
+                    <Input
+                      id="edit-name"
+                      value={editingMedication.name}
+                      onChange={(e) => setEditingMedication({ ...editingMedication, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-dosage">Dosage</Label>
+                    <Input
+                      id="edit-dosage"
+                      value={editingMedication.dosage}
+                      onChange={(e) => setEditingMedication({ ...editingMedication, dosage: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-frequency">Frequency</Label>
+                    <Select
+                      value={editingMedication.frequency}
+                      onValueChange={(value) => setEditingMedication({ ...editingMedication, frequency: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Daily">Daily</SelectItem>
+                        <SelectItem value="Twice Daily">Twice Daily</SelectItem>
+                        <SelectItem value="Three Times Daily">Three Times Daily</SelectItem>
+                        <SelectItem value="Weekly">Weekly</SelectItem>
+                        <SelectItem value="As Needed">As Needed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Medication Image</Label>
+                    <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg bg-muted/50">
+                      <p className="text-xs text-muted-foreground">Image editing not supported yet</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-start-date">Start Date</Label>
+                    <Input
+                      id="edit-start-date"
+                      type="date"
+                      value={editingMedication.startDate}
+                      onChange={(e) => setEditingMedication({ ...editingMedication, startDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-end-date">End Date</Label>
+                    <Input
+                      id="edit-end-date"
+                      type="date"
+                      value={editingMedication.endDate}
+                      onChange={(e) => setEditingMedication({ ...editingMedication, endDate: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-notes">Notes</Label>
+                  <Textarea
+                    id="edit-notes"
+                    value={editingMedication.notes}
+                    onChange={(e) => setEditingMedication({ ...editingMedication, notes: e.target.value })}
+                    className="min-h-[80px]"
+                  />
+                </div>
+                <div className="flex gap-4">
+                  <Button onClick={handleSaveEdit} className="w-full">Save Changes</Button>
+                  <Button onClick={handleCloseModal} className="w-full" variant="outline">Cancel</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   )

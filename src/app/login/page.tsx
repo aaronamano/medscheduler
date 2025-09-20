@@ -25,6 +25,8 @@ export default function LoginPage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem("token", data.token);
         router.push("/");
       } else {
         const data = await response.json();
