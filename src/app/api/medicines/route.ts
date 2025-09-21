@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import jwt from 'jsonwebtoken';
 
 async function shortenUrl(longUrl: string): Promise<string | null> {
   try {
@@ -47,11 +48,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Token missing' }, { status: 401 });
     }
 
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    } catch (error) {
+      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+    }
+
+    if (typeof decoded === 'string' || !decoded.userId) {
+      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+    }
+
     const client = await clientPromise;
     const db = client.db('medscheduler');
     const accounts = db.collection('accounts');
 
-    const userId = new ObjectId(token);
+    const userId = new ObjectId(decoded.userId);
 
     const medicationData = await req.json();
 
@@ -106,6 +118,17 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ message: 'Token missing' }, { status: 401 });
     }
 
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    } catch (error) {
+      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+    }
+
+    if (typeof decoded === 'string' || !decoded.userId) {
+      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+    }
+
     const medId = req.nextUrl.searchParams.get("id");
     if (!medId) {
         return NextResponse.json({ message: 'Medication ID missing' }, { status: 400 });
@@ -115,11 +138,11 @@ export async function DELETE(req: NextRequest) {
     const db = client.db('medscheduler');
     const accounts = db.collection('accounts');
 
-    const userId = new ObjectId(token);
+    const userId = new ObjectId(decoded.userId);
 
     const result = await accounts.updateOne(
       { _id: userId },
-      { $unset: { chart: { _id: new ObjectId(medId) } } } // originally $pull
+      { $pull: { chart: { _id: new ObjectId(medId) } } }
     );
 
     if (result.modifiedCount === 0) {
@@ -145,11 +168,22 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ message: 'Token missing' }, { status: 401 });
         }
 
+        let decoded;
+        try {
+          decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+        } catch (error) {
+          return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+        }
+    
+        if (typeof decoded === 'string' || !decoded.userId) {
+          return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+        }
+
         const client = await clientPromise;
         const db = client.db('medscheduler');
         const accounts = db.collection('accounts');
 
-        const userId = new ObjectId(token);
+        const userId = new ObjectId(decoded.userId);
         const medicationData = await req.json();
         const medId = ObjectId.createFromHexString(medicationData._id);
 

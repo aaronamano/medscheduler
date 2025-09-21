@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import clientPromise from '@/lib/mongodb';
+import jwt from 'jsonwebtoken';
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     // In a real application, you would generate a JWT here.
-    const token = user._id.toString();
+    let token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
 
     return NextResponse.json({ message: 'Login successful', token }, { status: 200 });
   } catch (error) {
