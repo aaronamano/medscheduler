@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Upload, Activity, Calendar, Clock, Pill, Download } from "lucide-react"
+import { Plus, Upload, Activity, Calendar, Clock, Pill, Download, X } from "lucide-react"
 import { MedicationGrid } from "@/components/medication-grid"
 
 export interface Medication {
@@ -532,7 +532,10 @@ export default function MedicationDashboard() {
         {/* Edit Medication Modal */}
         {isEditModalOpen && editingMedication && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <Card className="w-full max-w-2xl">
+            <Card className="w-full max-w-2xl relative">
+            <Button onClick={handleCloseModal} variant="ghost" size="icon" className="absolute top-4 right-4 z-10">
+                <X className="h-4 w-4" />
+              </Button>
               <CardHeader>
                 <CardTitle>Edit Medication</CardTitle>
                 <CardDescription>Update the details for your medication</CardDescription>
@@ -613,7 +616,6 @@ export default function MedicationDashboard() {
                 </div>
                 <div className="flex gap-4">
                   <Button onClick={handleSaveEdit} className="w-full">Save Changes</Button>
-                  <Button onClick={handleCloseModal} className="w-full" variant="outline">Cancel</Button>
                 </div>
               </CardContent>
             </Card>
