@@ -47,7 +47,7 @@ export function MedicationGrid({ medications, onDelete, onExportPDF, onEdit }: M
             <CardTitle>Medication Grid</CardTitle>
             <CardDescription>Interactive grid view of your medications</CardDescription>
           </div>
-          <Button onClick={onExportPDF} variant="outline" size="sm">
+          <Button onClick={onExportPDF} variant="outline" size="sm" id="export-pdf-button">
             <Download className="mr-2 h-4 w-4" />
             Export PDF
           </Button>

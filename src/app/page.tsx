@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Plus, Upload, Activity, Calendar, Clock, Pill, Download, X } from "lucide-react"
 import { MedicationGrid } from "@/components/medication-grid"
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas-pro";
 
 export interface Medication {
   _id: string
@@ -60,6 +62,7 @@ export default function MedicationDashboard() {
   const router = useRouter()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
+  const pdfContentRef = useRef<HTMLDivElement>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -278,37 +281,49 @@ export default function MedicationDashboard() {
   }
 
   const exportToPDF = async () => {
-    const { jsPDF } = await import("jspdf")
-    const doc = new jsPDF()
 
-    // Add title
-    doc.setFontSize(20)
-    doc.text("Medication Dashboard", 20, 20)
+    const input = pdfContentRef.current;
+    if (!input) {
+      console.error("Could not find content to export to PDF.");
+      return;
+    }
 
-    // Add date
-    doc.setFontSize(12)
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 35)
+    const exportButton = document.getElementById('export-pdf-button');
+    const actionDivs = input.querySelectorAll<HTMLElement>('.flex.gap-2.pt-2');
+    const addNewCard = input.querySelector<HTMLElement>('.border-dashed.border-2');
 
-    // Add medications table
-    let yPosition = 50
-    doc.setFontSize(14)
-    doc.text("Medications:", 20, yPosition)
-    yPosition += 10
+    if (exportButton) {
+      exportButton.style.display = 'none';
+    }
+    actionDivs.forEach(div => {
+      div.style.display = 'none';
+    });
+    if (addNewCard) {
+      addNewCard.style.display = 'none';
+    }
 
-    medications.forEach((med, index) => {
-      doc.setFontSize(10)
-      doc.text(`${index + 1}. ${med.name}`, 20, yPosition)
-      doc.text(`Dosage: ${med.dosage}`, 80, yPosition)
-      doc.text(`Frequency: ${med.frequency}`, 130, yPosition)
-      yPosition += 5
-      if (med.notes) {
-        doc.text(`Notes: ${med.notes.substring(0, 50)}${med.notes.length > 50 ? "..." : ""}`, 25, yPosition)
-        yPosition += 5
-      }
-      yPosition += 5
-    })
+    const canvas = await html2canvas(input);
 
-    doc.save("medication-dashboard.pdf")
+    if (exportButton) {
+      exportButton.style.display = '';
+    }
+    actionDivs.forEach(div => {
+      div.style.display = 'flex';
+    });
+    if (addNewCard) {
+      addNewCard.style.display = '';
+    }
+
+    const imgData = canvas.toDataURL('image/png');
+    
+    const pdf = new jsPDF({
+      orientation: 'p',
+      unit: 'px',
+      format: [canvas.width, canvas.height]
+    });
+
+    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+    pdf.save("medication-grid.pdf");
   }
 
   const handleLogout = () => {
@@ -527,7 +542,9 @@ export default function MedicationDashboard() {
         </Card>
 
         {/* Medication Grid */}
-        <MedicationGrid medications={medications} onDelete={deleteMedication} onExportPDF={exportToPDF} onEdit={handleEditClick} />
+        <div ref={pdfContentRef}>
+          <MedicationGrid medications={medications} onDelete={deleteMedication} onExportPDF={exportToPDF} onEdit={handleEditClick} />
+        </div>
 
         {/* Edit Medication Modal */}
         {isEditModalOpen && editingMedication && (
