@@ -30,8 +30,8 @@ export async function GET() {
     const medicineNames2 = await db.collection("medicines2").distinct("drug");
     const medicineNames = [...new Set([...medicineNames1, ...medicineNames2])].sort();
     return NextResponse.json(medicineNames);
-  } catch (e) {
-    console.error(e);
+  } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: "Unable to fetch medicines" }, { status: 500 });
   }
 }
@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET as string);
     } catch (error) {
+      console.error(error);
       return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
     }
 
@@ -122,6 +123,7 @@ export async function DELETE(req: NextRequest) {
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET as string);
     } catch (error) {
+      console.error(error);
       return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
     }
 
@@ -131,7 +133,7 @@ export async function DELETE(req: NextRequest) {
 
     const medId = req.nextUrl.searchParams.get("id");
     if (!medId) {
-        return NextResponse.json({ message: 'Medication ID missing' }, { status: 400 });
+      return NextResponse.json({ message: 'Medication ID missing' }, { status: 400 });
     }
 
     const client = await clientPromise;
@@ -142,7 +144,7 @@ export async function DELETE(req: NextRequest) {
 
     const result = await accounts.updateOne(
       { _id: userId },
-      { $pull: { chart: { _id: new ObjectId(medId) } } }
+      { $pull: { chart: { _id: new ObjectId(medId) } } } as Record<string, unknown>
     );
 
     if (result.modifiedCount === 0) {
@@ -157,67 +159,68 @@ export async function DELETE(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-    try {
-        const authHeader = req.headers.get('authorization');
-        if (!authHeader) {
-            return NextResponse.json({ message: 'Authorization header missing' }, { status: 401 });
-        }
-
-        const token = authHeader.split(' ')[1];
-        if (!token) {
-            return NextResponse.json({ message: 'Token missing' }, { status: 401 });
-        }
-
-        let decoded;
-        try {
-          decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-        } catch (error) {
-          return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
-        }
-    
-        if (typeof decoded === 'string' || !decoded.userId) {
-          return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
-        }
-
-        const client = await clientPromise;
-        const db = client.db('medscheduler');
-        const accounts = db.collection('accounts');
-
-        const userId = new ObjectId(decoded.userId);
-        const medicationData = await req.json();
-        const medId = ObjectId.createFromHexString(medicationData._id);
-
-        let imageUrl = medicationData.image;
-        if (imageUrl) {
-            const shortUrl = await shortenUrl(imageUrl);
-            if (shortUrl) {
-                imageUrl = shortUrl;
-            }
-        }
-
-        const result = await accounts.updateOne(
-            { _id: userId, "chart._id": medId },
-            {
-                $set: {
-                    "chart.$.medication": medicationData.name,
-                    "chart.$.dosage": medicationData.dosage,
-                    "chart.$.frequency": medicationData.frequency,
-                    "chart.$.duration.startDate": new Date(medicationData.startDate),
-                    "chart.$.duration.endDate": new Date(medicationData.endDate),
-                    "chart.$.notes": medicationData.notes,
-                    "chart.$.imageUrl": imageUrl,
-                    "chart.$.updatedAt": new Date(),
-                }
-            }
-        );
-
-        if (result.modifiedCount === 0) {
-            return NextResponse.json({ message: "User not found or medication not updated" }, { status: 404 });
-        }
-
-        return NextResponse.json({ message: "Medication updated successfully" }, { status: 200 });
-    } catch (error) {
-        console.error(error);
-        return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+  try {
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ message: 'Authorization header missing' }, { status: 401 });
     }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return NextResponse.json({ message: 'Token missing' }, { status: 401 });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    } catch (error) {
+      console.error(error);
+      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+    }
+
+    if (typeof decoded === 'string' || !decoded.userId) {
+      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+    }
+
+    const client = await clientPromise;
+    const db = client.db('medscheduler');
+    const accounts = db.collection('accounts');
+
+    const userId = new ObjectId(decoded.userId);
+    const medicationData = await req.json();
+    const medId = ObjectId.createFromHexString(medicationData._id);
+
+    let imageUrl = medicationData.image;
+    if (imageUrl) {
+      const shortUrl = await shortenUrl(imageUrl);
+      if (shortUrl) {
+        imageUrl = shortUrl;
+      }
+    }
+
+    const result = await accounts.updateOne(
+      { _id: userId, "chart._id": medId },
+      {
+        $set: {
+          "chart.$.medication": medicationData.name,
+          "chart.$.dosage": medicationData.dosage,
+          "chart.$.frequency": medicationData.frequency,
+          "chart.$.duration.startDate": new Date(medicationData.startDate),
+          "chart.$.duration.endDate": new Date(medicationData.endDate),
+          "chart.$.notes": medicationData.notes,
+          "chart.$.imageUrl": imageUrl,
+          "chart.$.updatedAt": new Date(),
+        }
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      return NextResponse.json({ message: "User not found or medication not updated" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Medication updated successfully" }, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+  }
 }

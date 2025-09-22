@@ -22,14 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+/* import { Badge } from "@/components/ui/badge"; */
 import {
   Plus,
   Upload,
-  Activity,
+  /*Activity,
   Calendar,
   Clock,
-  Pill,
+  Pill,*/
   Download,
   X,
 } from "lucide-react";
@@ -319,7 +319,7 @@ export default function MedicationDashboard() {
     }
   };
 
-  const getAdherenceRate = () => {
+  /* const getAdherenceRate = () => {
     if (medications.length === 0) return 0;
     const totalTaken = medications.reduce(
       (sum, med) => sum + med.timesTaken,
@@ -331,7 +331,7 @@ export default function MedicationDashboard() {
     );
     if (totalExpected === 0) return 0;
     return Math.round((totalTaken / totalExpected) * 100);
-  };
+  }; */
 
   const exportToPDF = async () => {
     const input = pdfContentRef.current;
