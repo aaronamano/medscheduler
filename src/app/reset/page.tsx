@@ -70,7 +70,7 @@ export default function ResetPasswordPage() {
             </div>
             {message && <p className="text-sm">{message}</p>}
             <Button type="submit" className="w-full" onClick={handleResetPassword}>
-              Send Reset Link
+              Reset Password
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">

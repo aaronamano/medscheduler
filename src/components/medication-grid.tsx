@@ -94,6 +94,7 @@ export function MedicationGrid({ medications, onDelete, onExportPDF, onEdit }: M
                   </div>
 
                   {/* Progress Bar */}
+                  {/* 
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Progress</span>
@@ -111,6 +112,7 @@ export function MedicationGrid({ medications, onDelete, onExportPDF, onEdit }: M
                       {Math.round((medication.timesTaken / medication.totalDoses) * 100)}% Complete
                     </div>
                   </div>
+                  */}
 
                   {/* Notes */}
                   <div className="space-y-1">
